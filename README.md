@@ -32,3 +32,12 @@ bazel build -c opt --action_env PYTHON_BIN_PATH="C:\\Python311\\python.exe" lyra
 bazel-bin/lyra/cli_example/encoder_main.exe --input_path=lyra/testdata/sample1_16kHz.wav --output_dir=%temp% --bitrate=9200
 bazel-bin/lyra/cli_example/decoder_main.exe --encoded_path=%temp%/sample1_16kHz.lyra --output_dir=%temp%/ --bitrate=9200
 ```
+
+## Running unit tests
+
+Running the built-in unit tests of Lyra might be useful, as we did some changes to statically build model files into the binaries themselves. So you can run them with:
+```
+bazel test --action_env PYTHON_BIN_PATH="C:\\Python311\\python.exe" //lyra:all
+```
+
+We don't currently have any vaudio_lyra-specific unit tests.
