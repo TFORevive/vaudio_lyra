@@ -67,12 +67,7 @@ int main(int argc, char** argv) {
   const float average_burst_length = absl::GetFlag(FLAGS_average_burst_length);
   const chromemedia::codec::PacketLossPattern fixed_packet_loss_pattern =
       absl::GetFlag(FLAGS_fixed_packet_loss_pattern);
-  const chromemedia::codec::LyraModels models{
-    { reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
-    { reinterpret_cast<const char*>(lyragan), lyragan_len },
-    { reinterpret_cast<const char*>(quantizer), quantizer_len },
-    { reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
-  };
+  const chromemedia::codec::LyraModels models = GetEmbeddedLyraModels();
   if (!fixed_packet_loss_pattern.starts_.empty()) {
     LOG(INFO) << "Using fixed packet loss pattern instead of gilbert model.";
   }

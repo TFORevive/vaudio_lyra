@@ -29,5 +29,18 @@ for varname, filename in files.items():
     with open("lyra/model_coeffs/{filename}".format(filename=filename), 'rb') as f:
         out += bin2header(f.read(), varname) + "\n"
 
+out += """
+#ifdef LYRA_EMBEDDED_MODELS_H_
+inline chromemedia::codec::LyraModels GetEmbeddedLyraModels() {
+  return {
+    { reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
+    { reinterpret_cast<const char*>(lyragan), lyragan_len },
+    { reinterpret_cast<const char*>(quantizer), quantizer_len },
+    { reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
+  };
+}
+#endif
+"""
+
 with open("lyra/model_coeffs/_models.h", 'w') as f:
     f.write(out)

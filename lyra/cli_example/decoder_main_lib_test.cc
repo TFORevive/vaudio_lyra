@@ -40,12 +40,7 @@ class DecoderMainLibTest : public testing::TestWithParam<int> {
   DecoderMainLibTest()
       : output_dir_(ghc::filesystem::path(testing::TempDir()) / "output/"),
         testdata_dir_(ghc::filesystem::current_path() / kTestdataDir),
-        models_({
-          { reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
-          { reinterpret_cast<const char*>(lyragan), lyragan_len },
-          { reinterpret_cast<const char*>(quantizer), quantizer_len },
-          { reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
-        }),
+        models_(GetEmbeddedLyraModels()),
         sample_rate_hz_(GetParam()),
         num_samples_in_packet_(GetNumSamplesPerHop(sample_rate_hz_)) {}
 

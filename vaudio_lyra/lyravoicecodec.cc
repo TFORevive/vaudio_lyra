@@ -105,12 +105,7 @@ bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int
 	const int sample_rate_hz = 16000;
 	const int bitrate = 3200; // 3.2 Kb/s = 3200 b/s = 400 B/s
 
-	const chromemedia::codec::LyraModels models{
-		{ reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
-		{ reinterpret_cast<const char*>(lyragan), lyragan_len },
-		{ reinterpret_cast<const char*>(quantizer), quantizer_len },
-		{ reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
-	};
+	const chromemedia::codec::LyraModels models = GetEmbeddedLyraModels();
 
 	m_Encoder = chromemedia::codec::LyraEncoder::Create(/*sample_rate_hz=*/sample_rate_hz, // <=kInternalSampleRateHz (using Lyra's native sample rate to avoid using resampler...)
 		/*num_channels=*/1,

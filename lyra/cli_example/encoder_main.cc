@@ -51,12 +51,7 @@ int main(int argc, char** argv) {
   const int bitrate = absl::GetFlag(FLAGS_bitrate);
   const bool enable_preprocessing = absl::GetFlag(FLAGS_enable_preprocessing);
   const bool enable_dtx = absl::GetFlag(FLAGS_enable_dtx);
-  const chromemedia::codec::LyraModels models{
-    { reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
-    { reinterpret_cast<const char*>(lyragan), lyragan_len },
-    { reinterpret_cast<const char*>(quantizer), quantizer_len },
-    { reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
-  };
+  const chromemedia::codec::LyraModels models = GetEmbeddedLyraModels();
 
   if (input_path.empty()) {
     LOG(ERROR) << "Flag --input_path not set.";
