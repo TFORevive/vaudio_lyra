@@ -771,6 +771,7 @@ cc_library(
     ],
     hdrs = [
         "tflite_model_wrapper.h",
+        "lyra_embedded_models.h",
     ],
     deps = [
         "@com_google_absl//absl/memory",

@@ -8,11 +8,20 @@ This was written for usage with TFORevive, and so may need adjustments for use w
 
 ## Compile (on Windows)
 
-You have to have [Bazelisk installed](https://bazel.build/install/bazelisk), and also MSVC and Python (that has `numpy` and `six` installed with pip). Replace `PYTHON_BIN_PATH` below with your Python installation.
+You have to have [Bazelisk installed](https://bazel.build/install/bazelisk), and also MSVC and Python (that has `numpy` and `six` installed with pip). Replace `C:\\Python311\\python.exe` below with your Python installation.
+
+First run the following to convert model files into a header file that will be bundled into the DLL:
+```
+C:\\Python311\\python.exe .\models_to_header.py
+```
+
+Then to compile:
 
 ```
 bazel build -c opt --action_env PYTHON_BIN_PATH="C:\\Python311\\python.exe" vaudio_lyra:vaudio_lyra
 ```
+
+Final file is at `./bazel-bin/vaudio_lyra/vaudio_lyra.dll`
 
 ## Compiling CLI examples
 

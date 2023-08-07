@@ -7,6 +7,8 @@
 #include "lyra/lyra_encoder.h"
 #include "lyra/lyra_decoder.h"
 
+#include "lyra/model_coeffs/_models.h"
+
 //#include <opus/include/opus.h>
 //#include <opus/include/opus_custom.h>
 //#pragma comment(lib, "opus.lib")
@@ -103,18 +105,18 @@ bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int
 	const int sample_rate_hz = 16000;
 	const int bitrate = 3200; // 3.2 Kb/s = 3200 b/s = 400 B/s
 
-	auto model_path = GetBinPath() / "lyra_model";
-	if (!ghc::filesystem::exists(model_path))
-	{
-		MessageBoxA(0, "Could not create lyra encoder: the folder \"lyra_model\" does not exist under the \"Bin\" folder.", "Lyra init error", MB_ICONERROR);
-		return false;
-	}
+	const chromemedia::codec::LyraModels models{
+		{ reinterpret_cast<const char*>(lyra_config_proto), lyra_config_proto_len },
+		{ reinterpret_cast<const char*>(lyragan), lyragan_len },
+		{ reinterpret_cast<const char*>(quantizer), quantizer_len },
+		{ reinterpret_cast<const char*>(soundstream_encoder), soundstream_encoder_len },
+	};
 
 	m_Encoder = chromemedia::codec::LyraEncoder::Create(/*sample_rate_hz=*/sample_rate_hz, // <=kInternalSampleRateHz (using Lyra's native sample rate to avoid using resampler...)
 		/*num_channels=*/1,
 		/*bitrate=*/bitrate,
 		/*enable_dtx=*/false,
-		/*model_path=*/model_path);
+		/*models=*/models);
 
 	if (m_Encoder == nullptr)
 	{
@@ -122,7 +124,7 @@ bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int
 		return false;
 	}
 
-	m_Decoder = chromemedia::codec::LyraDecoder::Create(sample_rate_hz, 1, model_path);
+	m_Decoder = chromemedia::codec::LyraDecoder::Create(sample_rate_hz, 1, models);
 
 	if (m_Decoder == nullptr)
 	{
