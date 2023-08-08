@@ -39,7 +39,7 @@ public:
 	//							Some codecs like big block sizes and will hang onto data you give them in Compress calls.
 	//							When you call with bFinal, the codec will give you compressed data no matter what.
 	// Return the number of bytes you filled into pCompressed.
-	virtual int		Compress(const char* pUncompressed, int nSamples, char* pCompressed, int maxCompressedBytes, bool bFinal) = 0;
+	virtual int		Compress(const char* pUncompressed, int nSamples, char* pCompressed, int maxCompressedBytes/*, bool bFinal*/) = 0;
 
 	// Decompress voice data. pUncompressed is 16-bit signed mono.
 	virtual int		Decompress(const char* pCompressed, int compressedBytes, char* pUncompressed, int maxUncompressedBytes) = 0;

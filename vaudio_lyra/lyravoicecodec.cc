@@ -1,4 +1,3 @@
-//#include "pch.h"
 #include "ivoicecodec.h"
 #include "iframeencoder.h"
 
@@ -9,66 +8,27 @@
 
 #include "lyra/model_coeffs/_models.h"
 
-//#include <opus/include/opus.h>
-//#include <opus/include/opus_custom.h>
-//#pragma comment(lib, "opus.lib")
-#pragma comment(lib, "lyra_config.lib")
-#pragma comment(lib, "lyra_encoder.lib")
-#pragma comment(lib, "lyra_decoder.lib")
+//#pragma comment(lib, "lyra_config.lib")
+//#pragma comment(lib, "lyra_encoder.lib")
+//#pragma comment(lib, "lyra_decoder.lib")
 
 #pragma comment(lib, "User32.lib")
-
-const ghc::filesystem::path GetBinPath()
-{
-	CHAR result[MAX_PATH];
-	DWORD length = GetModuleFileNameA(NULL, result, MAX_PATH);
-	ghc::filesystem::path path{ result };
-	path.remove_filename();
-	return path;
-}
-
-struct opus_options
-{
-	int iSampleRate;
-	int iRawFrameSize;
-	int iPacketSize;
-};
-
-#define CHANNELS 1
-
-opus_options g_OpusOpts[] =
-{
-		{44100, 256, 120},
-		{22050, 120, 60},
-		{22050, 256, 60},
-		//{22050, 320, 16}, // only this mode is used in TFO, values are broken pls fix
-		//{8000, 320, 16}, // only this mode is used in TFO, values are broken pls fix
-		//{22050, 512, 64}, // only this mode is used in TFO, values are broken pls fix
-		//{8000, 160, 20}
-};
 
 class VoiceEncoder_Lyra : public IFrameEncoder
 {
 public:
-	VoiceEncoder_Lyra();
-	virtual ~VoiceEncoder_Lyra();
+	VoiceEncoder_Lyra() {};
+	virtual ~VoiceEncoder_Lyra() {};
 
 	// Interfaces IFrameDecoder
 
 	bool Init(int quality, int samplerate, int& rawFrameSize, int& encodedFrameSize);
-	void Release();
-	void EncodeFrame(const char* pUncompressed, char* pCompressed);
-	void DecodeFrame(const char* pCompressed, char* pDecompressed);
+	void Release() { delete this; };
+	void EncodeFrame(const absl::Span<const int16_t> uncompressed, const absl::Span<uint8_t> compressed);
+	void DecodeFrame(const absl::Span<const uint8_t> compressed, const absl::Span<int16_t> uncompressed);
 	bool ResetState() { return true; };
 
 private:
-
-	//bool	InitStates();
-	//void	TermStates();
-
-	//OpusCustomEncoder* m_EncoderState;	// Celt internal encoder state
-	//OpusCustomDecoder* m_DecoderState; // Celt internal decoder state
-	//OpusCustomMode* m_Mode;
 	std::unique_ptr<chromemedia::codec::LyraEncoder> m_Encoder;
 	std::unique_ptr<chromemedia::codec::LyraDecoder> m_Decoder;
 };
@@ -76,19 +36,6 @@ private:
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
-
-VoiceEncoder_Lyra::VoiceEncoder_Lyra()
-{
-	//m_EncoderState = NULL;
-	//m_DecoderState = NULL;
-	//m_Mode = NULL;
-	//m_iVersion = 0;
-}
-
-VoiceEncoder_Lyra::~VoiceEncoder_Lyra()
-{
-	//TermStates();
-}
 
 bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int& encodedFrameSize)
 {
@@ -102,12 +49,14 @@ bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int
 		return false;
 	}
 
-	const int sample_rate_hz = 16000;
-	const int bitrate = 3200; // 3.2 Kb/s = 3200 b/s = 400 B/s
+	// The only supported bitrate values are 3200, 6000, 9200
+	//const int bitrate = 3200; // 3.2 Kb/s = 3200 b/s = 400 B/s
+	//const int bitrate = 6000; // 6 Kb/s = 6000 b/s = 750 B/s
+	const int bitrate = 9200; // 9.2 Kb/s = 9200 b/s = 1150 B/s
 
 	const chromemedia::codec::LyraModels models = GetEmbeddedLyraModels();
 
-	m_Encoder = chromemedia::codec::LyraEncoder::Create(/*sample_rate_hz=*/sample_rate_hz, // <=kInternalSampleRateHz (using Lyra's native sample rate to avoid using resampler...)
+	m_Encoder = chromemedia::codec::LyraEncoder::Create(/*sample_rate_hz=*/samplerate, // <=kInternalSampleRateHz (using Lyra's native sample rate to avoid using resampler...)
 		/*num_channels=*/1,
 		/*bitrate=*/bitrate,
 		/*enable_dtx=*/false,
@@ -115,45 +64,38 @@ bool VoiceEncoder_Lyra::Init(int quality, int samplerate, int& rawFrameSize, int
 
 	if (m_Encoder == nullptr)
 	{
-		MessageBoxA(0, "Could not create lyra encoder.\n\nEnsure the folder \"lyra_model\" exists under the \"Bin\" folder along with its contents.", "Lyra init error", MB_ICONERROR);
+		MessageBoxA(0, "Could not create Lyra encoder.", "Lyra init error", MB_ICONERROR);
 		return false;
 	}
 
-	m_Decoder = chromemedia::codec::LyraDecoder::Create(sample_rate_hz, 1, models);
+	m_Decoder = chromemedia::codec::LyraDecoder::Create(samplerate, /*num_channels=*/1, models);
 
 	if (m_Decoder == nullptr)
 	{
-		MessageBoxA(0, "Could not create lyra decoder.\n\nEnsure the folder \"lyra_model\" exists under the \"Bin\" folder along with its contents.", "Lyra init error", MB_ICONERROR);
+		MessageBoxA(0, "Could not create Lyra decoder.", "Lyra init error", MB_ICONERROR);
 		return false;
 	}
 
 	const int num_samples_per_packet = m_Encoder->sample_rate_hz() / m_Encoder->frame_rate();
 
 	rawFrameSize = num_samples_per_packet * BYTES_PER_SAMPLE;
-	//encodedFrameSize = m_Encoder->bitrate() / 8 / m_Encoder->frame_rate();
 	encodedFrameSize = chromemedia::codec::BitrateToPacketSize(m_Encoder->bitrate());
+	assert(rawFrameSize == 2 * 16000 / 50);
+	if (bitrate == 9200) assert(encodedFrameSize == 23);
 
+	//MessageBoxA(0, ("OK, quality:" + std::to_string(quality) + ", samplerate:" + std::to_string(samplerate)).c_str(), "Lyra init", 0);
 	return true;
 }
 
-void VoiceEncoder_Lyra::Release()
+void VoiceEncoder_Lyra::EncodeFrame(const absl::Span<const int16_t> uncompressed, const absl::Span<uint8_t> compressed)
 {
-	delete this;
-}
-
-//void VoiceEncoder_Lyra::EncodeFrame(const char* pUncompressedBytes, int maxUncompressedBytes, char* pCompressed, int maxCompressedBytes)
-void VoiceEncoder_Lyra::EncodeFrame(const char* pUncompressed, char* pCompressed)
-{
-	unsigned char output[1024];
-
 	const int num_samples_per_packet = m_Encoder->sample_rate_hz() / m_Encoder->frame_rate();
 	const int raw_frame_size = num_samples_per_packet * BYTES_PER_SAMPLE;
 
-	auto encoded = m_Encoder->Encode(absl::MakeConstSpan(
-		reinterpret_cast<const int16_t*>(pUncompressed),
-		//std::min(num_samples_per_packet, maxUncompressedBytes)
-		num_samples_per_packet
-	));
+	// uncompressed buffer is set to arbitrary big size, it does not equal num_samples_per_packet,
+	// but it only stores `num_samples_per_packet` amount of samples, and that's how must we must read
+	assert(uncompressed.size() >= num_samples_per_packet);
+	auto encoded = m_Encoder->Encode(uncompressed.first(num_samples_per_packet));
 
 	if (!encoded.has_value())
 	{
@@ -161,84 +103,70 @@ void VoiceEncoder_Lyra::EncodeFrame(const char* pUncompressed, char* pCompressed
 		return;
 	}
 
-	//opus_custom_encode(m_EncoderState, (opus_int16*)pUncompressedBytes, g_OpusOpts[m_iVersion].iRawFrameSize, output, g_OpusOpts[m_iVersion].iPacketSize);
+	assert(encoded->size() == chromemedia::codec::BitrateToPacketSize(m_Encoder->bitrate()));
 
-	//auto* pCompressedMax = pCompressed + maxCompressedBytes;
-	for (auto& c : *encoded)
-	{
-		*pCompressed = (char)c;
-		pCompressed++;
-		//if (pCompressed == pCompressedMax)
-		//	break;
-	}
+	memcpy_s(compressed.data(), compressed.size(), encoded->data(), encoded->size());
 }
 
-void VoiceEncoder_Lyra::DecodeFrame(const char* pCompressed, char* pDecompressed)
+void VoiceEncoder_Lyra::DecodeFrame(const absl::Span<const uint8_t> compressed, const absl::Span<int16_t> uncompressed)
 {
 	const int num_samples_per_packet = m_Encoder->sample_rate_hz() / m_Encoder->frame_rate();
 	const int packet_size = chromemedia::codec::BitrateToPacketSize(m_Encoder->bitrate());
+	assert(compressed.size() == packet_size);
 
-	m_Decoder->SetEncodedPacket(absl::MakeConstSpan(
-		reinterpret_cast<const uint8_t*>(pCompressed),
-		packet_size
-	));
+	bool valid = m_Decoder->SetEncodedPacket(compressed);
+	if (!valid)
+	{
+		//MessageBoxA(0, "Invalid Lyra frame.", "Lyra error", MB_ICONERROR);
+		assert(valid == true);
+		return;
+	}
 
 	auto decoded = m_Decoder->DecodeSamples(num_samples_per_packet);
 
 	if (!decoded.has_value())
 	{
-		MessageBoxA(0, "Could not decode Lyra frame.", "Lyra error", MB_ICONERROR);
+		//MessageBoxA(0, "Could not decode Lyra frame.", "Lyra error", MB_ICONERROR);
+		assert(decoded.has_value());
 		return;
 	}
 
-	for (auto& c : *decoded)
-	{
-		*pDecompressed = (char)c;
-		pDecompressed++;
-	}
+	assert(decoded->size() == num_samples_per_packet);
+
+	memcpy_s(uncompressed.data(), uncompressed.size() * BYTES_PER_SAMPLE, decoded->data(), decoded->size() * BYTES_PER_SAMPLE);
 }
 
-/*bool VoiceEncoder_Lyra::ResetState()
+class VoiceCodec_Uncompressed : public IVoiceCodec
 {
-	opus_custom_encoder_ctl(m_EncoderState, OPUS_RESET_STATE);
-	opus_custom_decoder_ctl(m_DecoderState, OPUS_RESET_STATE);
-
-	return true;
-}
-
-bool VoiceEncoder_Lyra::InitStates()
-{
-	if (!m_EncoderState || !m_DecoderState)
-		return false;
-
-	opus_custom_encoder_ctl(m_EncoderState, OPUS_RESET_STATE);
-	opus_custom_decoder_ctl(m_DecoderState, OPUS_RESET_STATE);
-
-	return true;
-}
-
-void VoiceEncoder_Lyra::TermStates()
-{
-	if (m_EncoderState)
+public:
+	VoiceCodec_Uncompressed() {}
+	virtual ~VoiceCodec_Uncompressed() {}
+	virtual bool Init(int quality, unsigned int nSamplesPerSec) { return true; }
+	virtual void Release() { delete this; }
+	virtual bool ResetState() { return true; }
+	virtual int Compress(const char* pUncompressed, int nSamples, char* pCompressed, int maxCompressedBytes/*, bool bFinal*/)
 	{
-		opus_custom_encoder_destroy(m_EncoderState);
-		m_EncoderState = NULL;
+		int nCompressedBytes = nSamples * BYTES_PER_SAMPLE;
+		memcpy_s(pCompressed, maxCompressedBytes, pUncompressed, nCompressedBytes);
+		return nCompressedBytes;
 	}
-
-	if (m_DecoderState)
+	virtual int Decompress(const char* pCompressed, int compressedBytes, char* pUncompressed, int maxUncompressedBytes)
 	{
-		opus_custom_decoder_destroy(m_DecoderState);
-		m_DecoderState = NULL;
+		int nDecompressedBytes = compressedBytes;
+		memcpy_s(pUncompressed, maxUncompressedBytes, pCompressed, compressedBytes);
+		return nDecompressedBytes / BYTES_PER_SAMPLE;
 	}
-
-	opus_custom_mode_destroy(m_Mode);
-}*/
+};
 
 #define EXPORT __declspec(dllexport)
 #define CALLTYPE STDAPICALLTYPE
 
 extern "C" EXPORT void* CALLTYPE CreateInterface(const char* pName, int* pReturnCode)
 {
+	assert(strcmp(pName, "vaudio_lyra") == 0);
+
+	//return new VoiceCodec_Uncompressed;
+
 	IFrameEncoder* pEncoder = new VoiceEncoder_Lyra;
 	return CreateVoiceCodec_Frame(pEncoder);
 }

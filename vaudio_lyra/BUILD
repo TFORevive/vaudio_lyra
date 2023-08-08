@@ -29,7 +29,7 @@ cc_binary(
         "@gulrak_filesystem//:filesystem",
     ],
     linkshared = 1,
-    copts = ["/DCOMPILING_DLL /MD"],
+    copts = ["/DCOMPILING_DLL"],
     target_compatible_with = [
         "@platforms//cpu:x86_64",
         "@platforms//os:windows",

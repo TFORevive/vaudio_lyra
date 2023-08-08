@@ -1,5 +1,7 @@
 #pragma once
 
+#include "absl/types/span.h"
+
 // A frame encoder is a codec that encodes and decodes data in fixed-size frames.
 // VoiceCodec_Frame handles queuing of data and the IVoiceCodec interface.
 class IFrameEncoder
@@ -15,11 +17,11 @@ public:
 
 	// pUncompressed is 8-bit signed mono sound data with 'rawFrameSize' bytes.
 	// pCompressed is the size of encodedFrameSize.
-	virtual void	EncodeFrame(const char* pUncompressed, char* pCompressed) = 0;
+	virtual void	EncodeFrame(const absl::Span<const int16_t> uncompressed, const absl::Span<uint8_t> compressed) = 0;
 
 	// pCompressed is encodedFrameSize.
 	// pDecompressed is where the 8-bit signed mono samples are stored and has space for 'rawFrameSize' bytes.
-	virtual void	DecodeFrame(const char* pCompressed, char* pDecompressed) = 0;
+	virtual void	DecodeFrame(const absl::Span<const uint8_t> compressed, const absl::Span<int16_t> uncompressed) = 0;
 
 	// Some codecs maintain state between Compress and Decompress calls. This should clear that state.
 	virtual bool	ResetState() = 0;

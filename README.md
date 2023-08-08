@@ -21,6 +21,8 @@ Then to compile:
 bazel build -c opt --action_env PYTHON_BIN_PATH="C:\\Python311\\python.exe" vaudio_lyra:vaudio_lyra
 ```
 
+You can replace `-c opt` with `-c dbg` to build in debug mode (with asserts enabled).
+
 Final file is at `./bazel-bin/vaudio_lyra/vaudio_lyra.dll`
 
 ## Compiling CLI examples
