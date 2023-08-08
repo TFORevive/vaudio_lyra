@@ -1,10 +1,8 @@
-# vaudio_lyra [WIP!!!]
-
-**Note:** This is purely untested pseudocode proof of concept currently. Do not expect it to work yet.
+# vaudio_lyra
 
 Speech codec plugin for voice that uses [Lyra](https://github.com/google/lyra), the new voice codec that achieves the best quality-to-bitrate ratio.
 
-This was written for usage with TFORevive, and so may need adjustments for use with other Source Engine games.
+This was written for usage with TFORevive, and so may need adjustments for use with other Source Engine games (missing `bool bFinal` param).
 
 ## Compile (on Windows)
 
