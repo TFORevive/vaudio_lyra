@@ -1,11 +1,7 @@
 cc_binary(
-    name = "vaudio_lyra",
+    name = "lyra_dll",
     srcs = [
-        "lyravoicecodec.cc",
         "dllmain.cc",
-        "frameencoder.cc",
-        "ivoicecodec.h",
-        "iframeencoder.h",
     ],
     #data = [":tflite_testdata"],
     linkopts = select({
